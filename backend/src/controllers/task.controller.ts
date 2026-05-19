@@ -18,7 +18,7 @@ export const taskController = {
   },
 
   async update(req: Request, res: Response) {
-    const task = await taskService.update(req.params.taskId as string, req.body, req.user!.id);
+    const task = await taskService.updateAsUser(req.params.taskId as string, req.body, req.user!);
     res.status(200).json({ task });
   },
 

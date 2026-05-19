@@ -28,6 +28,15 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+app.get("/ready", async (_req, res, next) => {
+  try {
+    await import("./config/prisma.js").then(({ prisma }) => prisma.$queryRaw`SELECT 1`);
+    res.status(200).json({ status: "ready" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);

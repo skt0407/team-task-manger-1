@@ -3,17 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { BarChart3, FolderKanban, ListTodo, LogOut, Moon, Users } from "lucide-react";
+import { BarChart3, FolderKanban, ListTodo, LogOut, Moon, UserCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/AuthProvider";
-
-const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/tasks", label: "Tasks", icon: ListTodo }
-];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
@@ -38,6 +32,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
     );
   }
+
+  const nav = [
+    { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+    { href: "/projects", label: "Projects", icon: FolderKanban },
+    { href: "/tasks", label: "Tasks", icon: ListTodo },
+    ...(user.role === "ADMIN" ? [{ href: "/team", label: "Team", icon: Users }] : []),
+    { href: "/profile", label: "Profile", icon: UserCircle }
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <nav className="grid grid-cols-3 border-b bg-card lg:hidden">
+        <nav className="grid grid-cols-5 border-b bg-card lg:hidden">
           {nav.map((item) => {
             const Icon = item.icon;
             const active = pathname.startsWith(item.href);

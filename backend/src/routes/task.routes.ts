@@ -26,6 +26,7 @@ router.patch(
   validate(updateTaskSchema),
   asyncHandler(taskController.update)
 );
+router.put("/:taskId", validate(updateTaskSchema), asyncHandler(taskController.update));
 router.patch("/:taskId/status", validate(updateTaskStatusSchema), asyncHandler(taskController.updateStatus));
 router.delete("/:taskId", requireRole(Role.ADMIN), validate(taskIdParam), asyncHandler(taskController.remove));
 

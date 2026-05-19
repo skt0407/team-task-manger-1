@@ -42,6 +42,36 @@ export function useCreateProject() {
   });
 }
 
+export function useUpdateProject(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { name?: string; description?: string | null }) => {
+      const res = await api.patch<{ project: Project }>(`/projects/${projectId}`, input);
+      return res.data.project;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Project updated");
+    }
+  });
+}
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      await api.delete(`/projects/${projectId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Project deleted");
+    }
+  });
+}
+
 export function useUsers(enabled = true) {
   return useQuery({
     queryKey: ["users"],
@@ -79,6 +109,22 @@ export function useRemoveProjectMember(projectId: string) {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Member removed");
+    }
+  });
+}
+
+export function useUpdateUserRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: "ADMIN" | "MEMBER" }) => {
+      const res = await api.patch<{ user: User }>(`/users/${userId}/role`, { role });
+      return res.data.user;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Role updated");
     }
   });
 }

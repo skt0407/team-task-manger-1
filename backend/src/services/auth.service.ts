@@ -67,6 +67,43 @@ export const authService = {
     return user;
   },
 
+  async updateMe(
+    userId: string,
+    input: { name?: string; email?: string; currentPassword?: string; newPassword?: string }
+  ) {
+    const existing = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) {
+      throw new ApiError(404, "User not found");
+    }
+
+    if (input.email && input.email !== existing.email) {
+      const emailTaken = await prisma.user.findUnique({ where: { email: input.email } });
+      if (emailTaken) {
+        throw new ApiError(409, "Email is already registered");
+      }
+    }
+
+    if (input.newPassword) {
+      const passwordMatches = await comparePassword(input.currentPassword ?? "", existing.password);
+      if (!passwordMatches) {
+        throw new ApiError(400, "Current password is incorrect");
+      }
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: input.name,
+        email: input.email,
+        password: input.newPassword ? await hashPassword(input.newPassword) : undefined
+      },
+      select: publicUserSelect
+    });
+
+    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    return { user, token };
+  },
+
   cookieOptions() {
     return {
       httpOnly: true,

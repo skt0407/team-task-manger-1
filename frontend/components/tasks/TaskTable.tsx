@@ -4,9 +4,10 @@ import { formatDistanceToNow, isBefore, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
 import { useAuth } from "@/providers/AuthProvider";
-import { useDeleteTask, useUpdateTaskStatus } from "@/hooks/useTasks";
-import type { Task } from "@/types/task";
+import { useDeleteTask, useUpdateTask, useUpdateTaskStatus } from "@/hooks/useTasks";
+import type { Task, TaskStatus } from "@/types/task";
 
 const statusLabels = {
   TODO: "To Do",
@@ -17,6 +18,7 @@ const statusLabels = {
 export function TaskTable({ tasks }: { tasks: Task[] }) {
   const { user } = useAuth();
   const updateStatus = useUpdateTaskStatus();
+  const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
 
   if (tasks.length === 0) {
@@ -58,7 +60,19 @@ export function TaskTable({ tasks }: { tasks: Task[] }) {
                   </Badge>
                 </td>
                 <td className="p-3">
-                  <Badge variant={task.status === "DONE" ? "success" : "default"}>{statusLabels[task.status]}</Badge>
+                  {user?.role === "MEMBER" ? (
+                    <Select
+                      value={task.status}
+                      onChange={(status) => updateTask.mutate({ taskId: task.id, input: { status: status as TaskStatus } })}
+                      options={[
+                        { value: "TODO", label: "To Do" },
+                        { value: "IN_PROGRESS", label: "In Progress" },
+                        { value: "DONE", label: "Done" }
+                      ]}
+                    />
+                  ) : (
+                    <Badge variant={task.status === "DONE" ? "success" : "default"}>{statusLabels[task.status]}</Badge>
+                  )}
                 </td>
                 <td className="p-3">
                   {task.dueDate ? (
@@ -89,9 +103,25 @@ export function TaskTable({ tasks }: { tasks: Task[] }) {
                       <span className="self-center text-xs text-muted-foreground">Complete</span>
                     )}
                     {user?.role === "ADMIN" && (
-                      <Button size="sm" variant="destructive" onClick={() => deleteTask.mutate(task.id)}>
-                        Delete
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            updateTask.mutate({
+                              taskId: task.id,
+                              input: {
+                                status: task.status === "DONE" ? "TODO" : "DONE"
+                              }
+                            })
+                          }
+                        >
+                          Toggle
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => deleteTask.mutate(task.id)}>
+                          Delete
+                        </Button>
+                      </>
                     )}
                   </div>
                 </td>

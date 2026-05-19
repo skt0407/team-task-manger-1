@@ -156,6 +156,24 @@ export const projectService = {
     return member;
   },
 
+  async listMembers(projectId: string) {
+    await this.ensureProject(projectId);
+
+    return prisma.projectMember.findMany({
+      where: { projectId },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, role: true }
+        }
+      },
+      orderBy: {
+        user: {
+          name: "asc"
+        }
+      }
+    });
+  },
+
   async removeMember(projectId: string, userId: string, actorId: string) {
     await this.ensureProject(projectId);
 

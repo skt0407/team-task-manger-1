@@ -32,6 +32,11 @@ export const projectController = {
     res.status(201).json({ member });
   },
 
+  async listMembers(req: Request, res: Response) {
+    const members = await projectService.listMembers(req.params.projectId as string);
+    res.status(200).json({ members });
+  },
+
   async removeMember(req: Request, res: Response) {
     await projectService.removeMember(req.params.projectId as string, req.params.userId as string, req.user!.id);
     res.status(204).send();

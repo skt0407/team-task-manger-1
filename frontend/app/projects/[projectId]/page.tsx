@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useParams } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
@@ -12,17 +12,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select } from "@/components/ui/select";
 import { useCreateTask } from "@/hooks/useTasks";
-import { useAddProjectMember, useProject, useRemoveProjectMember, useUsers } from "@/hooks/useProjects";
+import {
+  useAddProjectMember,
+  useDeleteProject,
+  useProject,
+  useRemoveProjectMember,
+  useUpdateProject,
+  useUsers
+} from "@/hooks/useProjects";
 import { useAuth } from "@/providers/AuthProvider";
 import type { Priority } from "@/types/task";
 
 export default function ProjectDetailPage() {
   const params = useParams<{ projectId: string }>();
+  const router = useRouter();
   const { user } = useAuth();
   const { data: project, isLoading } = useProject(params.projectId);
   const { data: users = [] } = useUsers(user?.role === "ADMIN");
   const createTask = useCreateTask();
+  const updateProject = useUpdateProject(params.projectId);
+  const deleteProject = useDeleteProject();
   const addMember = useAddProjectMember(params.projectId);
   const removeMember = useRemoveProjectMember(params.projectId);
   const [title, setTitle] = useState("");
@@ -31,6 +42,15 @@ export default function ProjectDetailPage() {
   const [priority, setPriority] = useState<Priority>("MEDIUM");
   const [assignedToId, setAssignedToId] = useState("");
   const [memberToAdd, setMemberToAdd] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+
+  useEffect(() => {
+    if (project) {
+      setProjectName(project.name);
+      setProjectDescription(project.description ?? "");
+    }
+  }, [project]);
 
   async function onCreateTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,6 +70,15 @@ export default function ProjectDetailPage() {
       setAssignedToId("");
     } catch (error: any) {
       toast.error(error.response?.data?.message ?? "Could not create task");
+    }
+  }
+
+  async function onUpdateProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      await updateProject.mutateAsync({ name: projectName, description: projectDescription });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message ?? "Could not update project");
     }
   }
 
@@ -76,6 +105,42 @@ export default function ProjectDetailPage() {
             </div>
 
             <div className="space-y-4">
+              {user?.role === "ADMIN" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Project settings</CardTitle>
+                    <CardDescription>Edit details or remove this project.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form className="space-y-4" onSubmit={onUpdateProject}>
+                      <Input value={projectName} onChange={(event) => setProjectName(event.target.value)} />
+                      <Textarea
+                        value={projectDescription}
+                        onChange={(event) => setProjectDescription(event.target.value)}
+                        placeholder="Description"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Button disabled={updateProject.isPending}>Save project</Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={async () => {
+                            try {
+                              await deleteProject.mutateAsync(params.projectId);
+                              router.push("/projects");
+                            } catch (error: any) {
+                              toast.error(error.response?.data?.message ?? "Could not delete project");
+                            }
+                          }}
+                        >
+                          Delete project
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card>
                 <CardHeader>
                   <CardTitle>Members</CardTitle>
@@ -97,20 +162,18 @@ export default function ProjectDetailPage() {
                   ))}
                   {user?.role === "ADMIN" && (
                     <div className="flex gap-2 pt-2">
-                      <select
-                        className="h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm"
+                      <Select
+                        className="min-w-0 flex-1"
                         value={memberToAdd}
-                        onChange={(event) => setMemberToAdd(event.target.value)}
-                      >
-                        <option value="">Select user</option>
-                        {users
+                        placeholder="Select user"
+                        onChange={setMemberToAdd}
+                        options={[
+                          { value: "", label: "Select user" },
+                          ...users
                           .filter((candidate) => !project.members.some((member) => member.userId === candidate.id))
-                          .map((candidate) => (
-                            <option key={candidate.id} value={candidate.id}>
-                              {candidate.name}
-                            </option>
-                          ))}
-                      </select>
+                          .map((candidate) => ({ value: candidate.id, label: candidate.name, description: candidate.email }))
+                        ]}
+                      />
                       <Button
                         variant="secondary"
                         disabled={!memberToAdd}
@@ -134,34 +197,35 @@ export default function ProjectDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <form className="space-y-4" onSubmit={onCreateTask}>
-                      <Input placeholder="Task title" value={title} onChange={(event) => setTitle(event.target.value)} required />
+                      <Input placeholder="Task title" value={title} onChange={(event) => setTitle(event.target.value)} />
                       <Textarea
                         placeholder="Description"
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
                       />
                       <Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
-                      <select
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      <Select
                         value={priority}
-                        onChange={(event) => setPriority(event.target.value as Priority)}
-                      >
-                        <option value="LOW">Low priority</option>
-                        <option value="MEDIUM">Medium priority</option>
-                        <option value="HIGH">High priority</option>
-                      </select>
-                      <select
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                        onChange={(value) => setPriority(value as Priority)}
+                        options={[
+                          { value: "LOW", label: "Low priority" },
+                          { value: "MEDIUM", label: "Medium priority" },
+                          { value: "HIGH", label: "High priority" }
+                        ]}
+                      />
+                      <Select
                         value={assignedToId}
-                        onChange={(event) => setAssignedToId(event.target.value)}
-                      >
-                        <option value="">Unassigned</option>
-                        {project.members.map((member) => (
-                          <option key={member.userId} value={member.userId}>
-                            {member.user?.name ?? member.userId}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Unassigned"
+                        onChange={setAssignedToId}
+                        options={[
+                          { value: "", label: "Unassigned" },
+                          ...project.members.map((member) => ({
+                            value: member.userId,
+                            label: member.user?.name ?? member.userId,
+                            description: member.user?.email
+                          }))
+                        ]}
+                      />
                       <Button disabled={createTask.isPending}>
                         <Plus className="mr-2 h-4 w-4" />
                         Create task

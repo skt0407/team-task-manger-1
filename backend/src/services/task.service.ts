@@ -142,6 +142,30 @@ export const taskService = {
     return task;
   },
 
+  async updateAsUser(
+    taskId: string,
+    input: {
+      title?: string;
+      description?: string | null;
+      dueDate?: string | null;
+      priority?: "LOW" | "MEDIUM" | "HIGH";
+      status?: TaskStatus;
+      assignedToId?: string | null;
+    },
+    user: UserContext
+  ) {
+    if (user.role === "ADMIN") {
+      return this.update(taskId, input, user.id);
+    }
+
+    const keys = Object.keys(input);
+    if (keys.length !== 1 || !("status" in input) || !input.status) {
+      throw new ApiError(403, "Members can only update task status");
+    }
+
+    return this.updateStatus(taskId, input.status, user);
+  },
+
   async updateStatus(taskId: string, status: TaskStatus, user: UserContext) {
     const task = await this.ensureTask(taskId);
 

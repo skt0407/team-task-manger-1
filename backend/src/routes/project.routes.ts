@@ -20,7 +20,14 @@ router.use(authenticate);
 router.get("/", asyncHandler(projectController.list));
 router.post("/", requireRole(Role.ADMIN), validate(createProjectSchema), asyncHandler(projectController.create));
 router.get("/:projectId", validate(projectIdParam), asyncHandler(projectController.getById));
+router.get("/:projectId/members", validate(projectIdParam), asyncHandler(projectController.listMembers));
 router.patch(
+  "/:projectId",
+  requireRole(Role.ADMIN),
+  validate(updateProjectSchema),
+  asyncHandler(projectController.update)
+);
+router.put(
   "/:projectId",
   requireRole(Role.ADMIN),
   validate(updateProjectSchema),

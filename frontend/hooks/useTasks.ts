@@ -56,6 +56,36 @@ export function useUpdateTaskStatus() {
   });
 }
 
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      input
+    }: {
+      taskId: string;
+      input: Partial<{
+        title: string;
+        description: string | null;
+        dueDate: string | null;
+        priority: Priority;
+        status: TaskStatus;
+        assignedToId: string | null;
+      }>;
+    }) => {
+      const res = await api.put<{ task: Task }>(`/tasks/${taskId}`, input);
+      return res.data.task;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("Task updated");
+    }
+  });
+}
+
 export function useDeleteTask() {
   const queryClient = useQueryClient();
 

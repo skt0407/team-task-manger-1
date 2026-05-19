@@ -22,5 +22,11 @@ export const authController = {
   async me(req: Request, res: Response) {
     const user = await authService.me(req.user!.id);
     res.status(200).json({ user });
+  },
+
+  async updateMe(req: Request, res: Response) {
+    const result = await authService.updateMe(req.user!.id, req.body);
+    res.cookie("accessToken", result.token, authService.cookieOptions());
+    res.status(200).json(result);
   }
 };
