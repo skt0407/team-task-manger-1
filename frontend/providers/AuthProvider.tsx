@@ -25,7 +25,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     api
       .get<{ user: User }>("/auth/me")
       .then((res) => setUser(res.data.user))
-      .catch(() => setUser(null))
+      .catch(() => {
+        window.localStorage.removeItem("teamflow_token");
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -35,18 +38,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       async login(email, password) {
         const res = await api.post<AuthResponse>("/auth/login", { email, password });
+        window.localStorage.setItem("teamflow_token", res.data.token);
         setUser(res.data.user);
         toast.success("Welcome back");
         router.push("/dashboard");
       },
       async signup(name, email, password) {
         const res = await api.post<AuthResponse>("/auth/signup", { name, email, password });
+        window.localStorage.setItem("teamflow_token", res.data.token);
         setUser(res.data.user);
         toast.success("Account created");
         router.push("/dashboard");
       },
       async logout() {
         await api.post("/auth/logout");
+        window.localStorage.removeItem("teamflow_token");
         setUser(null);
         router.push("/auth/login");
       }

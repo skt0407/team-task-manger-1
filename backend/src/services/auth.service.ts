@@ -70,7 +70,7 @@ export const authService = {
   cookieOptions() {
     return {
       httpOnly: true,
-      sameSite: "lax" as const,
+      sameSite: env.NODE_ENV === "production" ? ("none" as const) : ("lax" as const),
       secure: env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000
     };
